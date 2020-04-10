@@ -88,47 +88,13 @@ import org.xmlpull.v1.XmlPullParserException;
  */
 @ExportedBean
 public class Fingerprint implements ModelObject, Saveable {
-
-    private static final DateConverter DATE_CONVERTER = new DateConverter();
-
-    /**
-     * Time when the fingerprint has been captured.
-     */
-    private final @NonNull Date timestamp;
-
-    /**
-     * Null if this fingerprint is for a file that's
-     * apparently produced outside.
-     */
-    private final @CheckForNull BuildPtr original;
-
-    private final byte[] md5sum;
-
-    private final String fileName;
-
-    /**
-     * Range of builds that use this file keyed by a job full name.
-     */
-    private Hashtable<String,RangeSet> usages = new Hashtable<>();
-
-    protected PersistedList<FingerprintFacet> facets = new PersistedList<>(this);
-
-    /**
-     * Lazily computed immutable {@link FingerprintFacet}s created from {@link TransientFingerprintFacetFactory}.
-     */
-    private transient volatile List<FingerprintFacet> transientFacets = null;
-
-    private static final XStream2 XSTREAM = new XStream2();
-
-    private static final Logger logger = Logger.getLogger(Fingerprint.class.getName());
-
     /**
      * Pointer to a {@link Build}.
      */
     @ExportedBean(defaultVisibility=2)
     public static class BuildPtr {
-        protected String name;
-        protected final int number;
+        String name;
+        final int number;
 
         public BuildPtr(String name, int number) {
             this.name = name;
@@ -173,7 +139,7 @@ public class Fingerprint implements ModelObject, Saveable {
         
         
 
-        protected void setName(String newName) {
+        void setName(String newName) {
             name = newName;
         }
         
@@ -237,9 +203,8 @@ public class Fingerprint implements ModelObject, Saveable {
         public boolean belongsTo(Job job) {
             Item p = Jenkins.get().getItemByFullName(name);
             while(p!=null) {
-                if(p.equals(job)) {
+                if(p==job)
                     return true;
-                }
 
                 // go up the chain while we
                 ItemGroup<? extends Item> parent = p.getParent();
@@ -263,8 +228,8 @@ public class Fingerprint implements ModelObject, Saveable {
      */
     @ExportedBean(defaultVisibility=4)
     public static final class Range {
-        protected final int start;
-        protected final int end;
+        final int start;
+        final int end;
 
         public Range(int start, int end) {
             assert start<end;
@@ -598,8 +563,7 @@ public class Fingerprint implements ModelObject, Saveable {
             boolean modified = false;
             List<Range> sub = new ArrayList<>();
 
-            int lhs=0;
-            int rhs=0;
+            int lhs=0,rhs=0;
             while(lhs<this.ranges.size() && rhs<that.ranges.size()) {
                 Range lr = this.ranges.get(lhs);
                 Range rr = that.ranges.get(rhs);
@@ -826,7 +790,7 @@ public class Fingerprint implements ModelObject, Saveable {
                 writer.setValue(serialize(src));
             }
 
-            protected static String serialize(RangeSet src) {
+            static String serialize(RangeSet src) {
                 StringBuilder buf = new StringBuilder(src.ranges.size()*10);
                 for (Range r : src.ranges) {
                     if(buf.length()>0)  buf.append(',');
@@ -881,6 +845,35 @@ public class Fingerprint implements ModelObject, Saveable {
             }
         }
     }
+
+    private static final DateConverter DATE_CONVERTER = new DateConverter();
+    
+    /**
+     * Time when the fingerprint has been captured.
+     */
+    private final @NonNull Date timestamp;
+
+    /**
+     * Null if this fingerprint is for a file that's
+     * apparently produced outside.
+     */
+    private final @CheckForNull BuildPtr original;
+
+    private final byte[] md5sum;
+
+    private final String fileName;
+
+    /**
+     * Range of builds that use this file keyed by a job full name.
+     */
+    private Hashtable<String,RangeSet> usages = new Hashtable<>();
+
+    PersistedList<FingerprintFacet> facets = new PersistedList<>(this);
+
+    /**
+     * Lazily computed immutable {@link FingerprintFacet}s created from {@link TransientFingerprintFacetFactory}.
+     */
+    private transient volatile List<FingerprintFacet> transientFacets = null;
 
     public Fingerprint(@CheckForNull Run build, @NonNull String fileName, @NonNull byte[] md5sum) throws IOException {
         this(build==null ? null : new BuildPtr(build), fileName, md5sum);
@@ -1043,7 +1036,7 @@ public class Fingerprint implements ModelObject, Saveable {
         return this;
     }
 
-    protected void addWithoutSaving(@NonNull String jobFullName, int n) {
+    void addWithoutSaving(@NonNull String jobFullName, int n) {
         synchronized(usages) { // TODO why not synchronized (this) like some, though not all, other accesses?
             RangeSet r = usages.get(jobFullName);
             if(r==null) {
@@ -1259,7 +1252,7 @@ public class Fingerprint implements ModelObject, Saveable {
             logger.fine("Saving fingerprint "+file+" took "+(System.currentTimeMillis()-start)+"ms");
     }
 
-    protected void save(File file) throws IOException {
+    void save(File file) throws IOException {
         if (facets.isEmpty()) {
             file.getParentFile().mkdirs();
             // JENKINS-16301: fast path for the common case.
@@ -1329,9 +1322,11 @@ public class Fingerprint implements ModelObject, Saveable {
      */
     public synchronized void rename(String oldName, String newName) throws IOException {
         boolean touched = false;
-        if (original != null && original.getName().equals(oldName)) {
-            original.setName(newName);
-            touched = true;
+        if (original != null) {
+            if (original.getName().equals(oldName)) {
+                original.setName(newName);
+                touched = true;
+            }
         }
         
         if (usages != null) {
@@ -1373,10 +1368,10 @@ public class Fingerprint implements ModelObject, Saveable {
      * @return Loaded {@link Fingerprint}. Null if the config file does not exist or
      * malformed.
      */
-    /*package*/ protected static @CheckForNull Fingerprint load(@NonNull byte[] md5sum) throws IOException {
+    /*package*/ static @CheckForNull Fingerprint load(@NonNull byte[] md5sum) throws IOException {
         return load(getFingerprintFile(md5sum));
     }
-    /*package*/ protected static @CheckForNull Fingerprint load(@NonNull File file) throws IOException {
+    /*package*/ static @CheckForNull Fingerprint load(@NonNull File file) throws IOException {
         XmlFile configFile = getConfigFile(file);
         if(!configFile.exists())
             return null;
@@ -1487,6 +1482,8 @@ public class Fingerprint implements ModelObject, Saveable {
         }
     }
 
+    private static final XStream2 XSTREAM = new XStream2();
+
     /**
      * Provides the XStream instance this class is using for serialization.
      *
@@ -1512,4 +1509,6 @@ public class Fingerprint implements ModelObject, Saveable {
             }
         ),10);
     }
+
+    private static final Logger logger = Logger.getLogger(Fingerprint.class.getName());
 }
