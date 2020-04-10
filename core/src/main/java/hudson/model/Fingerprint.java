@@ -727,43 +727,48 @@ public class Fingerprint implements ModelObject, Saveable {
 
             // Reject malformed ranges like "1---10", "1,,,,3" etc.
             if (list.contains("--") || list.contains(",,")) {
-                if (!skipError) {
-                    throw new IllegalArgumentException(
-                            String.format("Unable to parse '%s', expected correct notation M,N or M-N", list));
-                }
+                areWeThrowingAnException(list, "Unable to parse '%s', expected correct notation M,N or M-N", skipError);
+//                if (!skipError) {
+//                    throw new IllegalArgumentException(
+//                            String.format("Unable to parse '%s', expected correct notation M,N or M-N", list));
+//                }
                 // ignore malformed notation
                 return rs;
             }
 
             String[] items = Util.tokenize(list,",");
             if(items.length > 1 && items.length <= StringUtils.countMatches(list, ",")) {
-                if (!skipError) {
-                    throw new IllegalArgumentException(
-                            String.format("Unable to parse '%s', expected correct notation M,N or M-N", list));
-                }
+//                if (!skipError) {
+//                    throw new IllegalArgumentException(
+//                            String.format("Unable to parse '%s', expected correct notation M,N or M-N", list));
+//                }
+                areWeThrowingAnException(list, "Unable to parse '%s', expected correct notation M,N or M-N", skipError);
                 // ignore malformed notation like ",1,2" or "1,2,"
                 return rs;
             }
 
+//            unnamedHelperFunction();
             for (String s : items) {
                 s = s.trim();
                 // s is either single number or range "x-y".
                 // note that the end range is inclusive in this notation, but not in the Range class
                 try {
                     if (s.isEmpty()) {
-                        if (!skipError) {
-                            throw new IllegalArgumentException(
-                                    String.format("Unable to parse '%s', expected number", list));                        }
+                        areWeThrowingAnException(list, "Unable to parse '%s', expected number", skipError);
+//                        if (!skipError) {
+//                            throw new IllegalArgumentException(
+//                                    String.format("Unable to parse '%s', expected number", list));                        }
                         // ignore "" element
                         continue;
                     }
 
                     if(s.contains("-")) {
                         if(StringUtils.countMatches(s, "-") > 1) {
-                            if (!skipError) {
-                                throw new IllegalArgumentException(String.format(
-                                        "Unable to parse '%s', expected correct notation M,N or M-N", list));
-                            }
+                            areWeThrowingAnException(list, "Unable to parse '%s', expected correct notation M,N or M-N", skipError);
+//                            if (!skipError) {
+//                                throw new IllegalArgumentException(String.format(
+//                                        "Unable to parse '%s', expected correct notation M,N or M-N", list));
+//                            }
                             // ignore malformed ranges like "-5-2" or "2-5-"
                             continue;
                         }
@@ -772,27 +777,30 @@ public class Fingerprint implements ModelObject, Saveable {
                             int left = Integer.parseInt(tokens[0]);
                             int right = Integer.parseInt(tokens[1]);
                             if(left < 0 || right < 0) {
-                                if (!skipError) {
-                                    throw new IllegalArgumentException(
-                                            String.format("Unable to parse '%s', expected number above zero", list));
-                                }
+                                areWeThrowingAnException(list, "Unable to parse '%s', expected number above zero", skipError);
+//                                if (!skipError) {
+//                                    throw new IllegalArgumentException(
+//                                            String.format("Unable to parse '%s', expected number above zero", list));
+//                                }
                                 // ignore a range which starts or ends under zero like "-5-3"
                                 continue;
                             }
                             if(left > right) {
-                                if (!skipError) {
-                                    throw new IllegalArgumentException(String.format(
-                                            "Unable to parse '%s', expected string with a range M-N where M<N", list));
-                                }
+                                areWeThrowingAnException(list, "Unable to parse '%s', expected string with a range M-N where M<N", skipError);
+//                                if (!skipError) {
+//                                    throw new IllegalArgumentException(String.format(
+//                                            "Unable to parse '%s', expected string with a range M-N where M<N", list));
+//                                }
                                 // ignore inverse range like "10-5"
                                 continue;
                             }
                             rs.ranges.add(new Range(left, right+1));
                         } else {
-                            if (!skipError) {
-                                throw new IllegalArgumentException(
-                                        String.format("Unable to parse '%s', expected string with a range M-N", list));
-                            }
+                            areWeThrowingAnException(list, "Unable to parse '%s', expected string with a range M-N", skipError);
+//                            if (!skipError) {
+//                                throw new IllegalArgumentException(
+//                                        String.format("Unable to parse '%s', expected string with a range M-N", list));
+//                            }
                             // ignore malformed text like "1-10-50"
                             continue;
                         }
@@ -801,14 +809,35 @@ public class Fingerprint implements ModelObject, Saveable {
                         rs.ranges.add(new Range(n,n+1));
                     }
                 } catch (NumberFormatException e) {
-                    if (!skipError)
-                        throw new IllegalArgumentException(
-                                String.format("Unable to parse '%s', expected number", list));
+                    areWeThrowingAnException(list, "Unable to parse '%s', expected number", skipError);
+//                    if (!skipError)
+//                        throw new IllegalArgumentException(
+//                                String.format("Unable to parse '%s', expected number", list));
                     // ignore malformed text
                 }
             }
             return rs;
         }
+
+//        private static RangeSet unnamedHelperFunction(){
+//
+//        }
+
+        //I should try and have a method that pulls out the !skipError ifs into a function.
+
+
+//        private void checkStringForError(String s){
+//
+//        }
+
+
+        private static void areWeThrowingAnException(String list, String errorMessage, boolean skipError){
+            if(!skipError){
+                throw new IllegalArgumentException(String.format(
+                        errorMessage, list));
+            }
+        }
+
 
         static final class ConverterImpl implements Converter {
             private final Converter collectionConv; // used to convert ArrayList in it
