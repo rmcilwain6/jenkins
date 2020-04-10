@@ -170,9 +170,7 @@ public class Fingerprint implements ModelObject, Saveable {
 
             return canDiscoverItem(name);
         }
-
-
-
+        
         protected void setName(String newName) {
             name = newName;
         }
