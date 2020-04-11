@@ -729,62 +729,13 @@ public class Fingerprint implements ModelObject, Saveable {
                 // ignore malformed notation
                 return rs;
             }
-
             String[] items = Util.tokenize(list,",");
             if(items.length > 1 && items.length <= StringUtils.countMatches(list, ",")) {
                 areWeThrowingAnException(list, "Unable to parse '%s', expected correct notation M,N or M-N", skipError);
                 // ignore malformed notation like ",1,2" or "1,2,"
                 return rs;
             }
-
             forLoopFunction(items, rs, list, skipError);
-
-//            for (String s : items) {
-//                s = s.trim();
-//                // s is either single number or range "x-y".
-//                // note that the end range is inclusive in this notation, but not in the Range class
-//                try {
-//                    if (s.isEmpty()) {
-//                        areWeThrowingAnException(list, "Unable to parse '%s', expected number", skipError);
-//                        // ignore "" element
-//                        continue;
-//                    }
-//                    //so we want a function that handles the below loop. Basically all this block does it check for
-//                    if(s.contains("-")) {
-//                        if(StringUtils.countMatches(s, "-") > 1) {
-//                            areWeThrowingAnException(list, "Unable to parse '%s', expected correct notation M,N or M-N", skipError);
-//                            // ignore malformed ranges like "-5-2" or "2-5-"
-//                            continue;
-//                        }
-//                        String[] tokens = Util.tokenize(s,"-");
-//                        if (tokens.length == 2) {
-//                            int left = Integer.parseInt(tokens[0]);
-//                            int right = Integer.parseInt(tokens[1]);
-//                            if(left < 0 || right < 0) {
-//                                areWeThrowingAnException(list, "Unable to parse '%s', expected number above zero", skipError);
-//                                // ignore a range which starts or ends under zero like "-5-3"
-//                                continue;
-//                            }
-//                            if(left > right) {
-//                                areWeThrowingAnException(list, "Unable to parse '%s', expected string with a range M-N where M<N", skipError);
-//                                // ignore inverse range like "10-5"
-//                                continue;
-//                            }
-//                            rs.ranges.add(new Range(left, right+1));
-//                        } else {
-//                            areWeThrowingAnException(list, "Unable to parse '%s', expected string with a range M-N", skipError);
-//                            // ignore malformed text like "1-10-50"
-//                            continue;
-//                        }
-//                    } else {
-//                        int n = Integer.parseInt(s);
-//                        rs.ranges.add(new Range(n,n+1));
-//                    }
-//                } catch (NumberFormatException e) {
-//                    areWeThrowingAnException(list, "Unable to parse '%s', expected number", skipError);
-//                    // ignore malformed text
-//                }
-//            }
             return rs;
         }
 
@@ -826,13 +777,6 @@ public class Fingerprint implements ModelObject, Saveable {
             }
         }
 
-        //I should try and have a method that pulls out the !skipError ifs into a function.
-
-
-//        private void handleSomeLoop(RangeSet rs, String s, ){
-//
-//        }
-
         private static boolean tokenIfLoop(String[] tokens, String list, boolean skipError) {
             if (tokens.length == 2) {
                 int left = Integer.parseInt(tokens[0]);
@@ -855,14 +799,12 @@ public class Fingerprint implements ModelObject, Saveable {
             }
         }
 
-
         private static void areWeThrowingAnException(String list, String errorMessage, boolean skipError){
             if(!skipError){
                 throw new IllegalArgumentException(String.format(
                         errorMessage, list));
             }
         }
-
 
         static final class ConverterImpl implements Converter {
             private final Converter collectionConv; // used to convert ArrayList in it
